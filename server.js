@@ -14,6 +14,8 @@ const HTTP_PORT = Number(process.env.PORT || 8080);
 const HTTPS_PORT = Number(process.env.HTTPS_PORT || 8443);
 const REJECT_WEBHOOK = process.env.REJECT_WEBHOOK || ''; // e.g. http://plc-gateway/reject
 const ACCESS_PASSWORD = process.env.ACCESS_PASSWORD || ''; // set this before exposing the server to the internet
+// Public https address when hosted (Render sets RENDER_EXTERNAL_URL). The host provides HTTPS, so skip our own.
+const PUBLIC_URL = (process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || '').replace(/\/$/, '');
 const ROOT = __dirname;
 const PUBLIC = path.join(ROOT, 'public');
 const DATA = path.join(ROOT, 'data');
@@ -132,6 +134,7 @@ function authorized(req) {
 
 // ---------- request handler ----------
 async function handle(req, res) {
+  if (req.url === '/healthz') { res.writeHead(200); return res.end('ok'); }
   if (!authorized(req)) {
     res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Smart QC", charset="UTF-8"', 'Content-Type': 'text/plain' });
     return res.end('Password required');
@@ -141,7 +144,7 @@ async function handle(req, res) {
   try {
     // --- API ---
     if (p === '/api/info') {
-      return json(res, 200, { ips: lanIPs(), httpPort: HTTP_PORT, httpsPort: httpsServer ? HTTPS_PORT : null });
+      return json(res, 200, { ips: lanIPs(), httpPort: HTTP_PORT, httpsPort: httpsServer ? HTTPS_PORT : null, publicUrl: PUBLIC_URL || null });
     }
     if (p === '/api/inspections' && req.method === 'POST') {
       const b = await readBody(req);
@@ -284,8 +287,10 @@ http.createServer(handle).listen(HTTP_PORT, () => {
   console.log(ACCESS_PASSWORD ? 'Password protection: ON' : 'Password protection: OFF (set ACCESS_PASSWORD before sharing online)');
 });
 let httpsServer = null;
-const creds = ensureCert();
-if (creds) {
+const creds = PUBLIC_URL ? null : ensureCert();
+if (PUBLIC_URL) {
+  console.log(`Public URL: ${PUBLIC_URL}`);
+} else if (creds) {
   httpsServer = https.createServer(creds, handle).listen(HTTPS_PORT, () => {
     for (const ip of lanIPs()) console.log(`From phone / other devices:     https://${ip}:${HTTPS_PORT}`);
     console.log('(Self-signed certificate: accept the browser warning once on each device.)\n');

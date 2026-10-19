@@ -85,10 +85,10 @@
 <script>
   fetch('/api/info').then(r => r.json()).then(info => {
     const ip = info.ips[0];
-    const base = info.httpsPort && ip ? `https://${ip}:${info.httpsPort}` : (ip ? `http://${ip}:${info.httpPort}` : location.origin);
+    const base = info.publicUrl || (info.httpsPort && ip ? `https://${ip}:${info.httpsPort}` : (ip ? `http://${ip}:${info.httpPort}` : location.origin));
     const cam = `${base}/camera.html?room=line-1`;
-    document.getElementById('camUrl').innerHTML = `<a href="${cam}">${cam}</a>` + (info.httpsPort ? '' : '<br><span style="color:var(--warn)">HTTPS ไม่พร้อม — กล้องมือถือผ่าน LAN จะใช้ไม่ได้</span>') +
-      (info.ips.length > 1 ? `<br><span class="muted">IP อื่น: ${info.ips.slice(1).join(', ')}</span>` : '');
+    document.getElementById('camUrl').innerHTML = `<a href="${cam}">${cam}</a>` + (info.publicUrl || info.httpsPort ? '' : '<br><span style="color:var(--warn)">HTTPS ไม่พร้อม — กล้องมือถือผ่าน LAN จะใช้ไม่ได้</span>') +
+      (!info.publicUrl && info.ips.length > 1 ? `<br><span class="muted">IP อื่น: ${info.ips.slice(1).join(', ')}</span>` : '');
     document.getElementById('dashUrl').textContent = `จากเครื่องอื่น: ${base}/dashboard.html`;
     if (window.QRCode) new QRCode(document.getElementById('qr'), { text: cam, width: 128, height: 128 });
     else document.getElementById('qr').style.display = 'none';

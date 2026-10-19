@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: smart-qc-scanner
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /healthz
+    envVars:
+      - key: ACCESS_PASSWORD
+        sync: false

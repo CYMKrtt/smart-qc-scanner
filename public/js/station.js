@@ -114,7 +114,7 @@ async function listCameras(stream) {
 // ---- WebRTC receiver (phone camera → this station)
 async function startRtc() {
   const info = await fetch('/api/info').then(r => r.json()).catch(() => ({ ips: [] }));
-  const host = info.httpsPort && info.ips[0] ? `https://${info.ips[0]}:${info.httpsPort}` : location.origin;
+  const host = info.publicUrl ? info.publicUrl : info.httpsPort && info.ips[0] ?`https://${info.ips[0]}:${info.httpsPort}` : location.origin;
   setSrcStatus(`รอกล้องมือถือ… เปิด ${host}/camera.html?room=${line()} บนมือถือ`, 'warn');
   $('empty').innerHTML = `รอกล้องมือถือเชื่อมต่อ…<br><span class="mono" style="color:var(--mint)">${host}/camera.html?room=${encodeURIComponent(line())}</span><br><span class="small">(หรือเปิดหน้าแรกเพื่อสแกน QR code)</span>`;
   $('empty').style.display = '';

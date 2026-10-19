@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node server.js"
   },
+  "engines": { "node": ">=18" },
   "license": "UNLICENSED",
   "private": true
 }
