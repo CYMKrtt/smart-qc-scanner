@@ -1,0 +1,11 @@
+{
+  "name": "smart-qc-scanner",
+  "version": "0.1.0",
+  "description": "Smart QC Scanner prototype: WebRTC camera inspection for production lines with real-time dashboard",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "license": "UNLICENSED",
+  "private": true
+}

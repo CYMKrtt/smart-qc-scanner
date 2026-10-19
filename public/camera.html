@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>QC Camera — Smart QC Scanner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/app.css">
+<style>
+  body { display: flex; flex-direction: column; min-height: 100dvh; }
+  .cam { position: relative; flex: 1; background: #000; display: grid; place-items: center; overflow: hidden; }
+  video { width: 100%; height: 100%; object-fit: contain; }
+  .overlay { position: absolute; inset: 0; pointer-events: none; transition: box-shadow .15s; }
+  .overlay.pass { box-shadow: inset 0 0 0 10px var(--good); }
+  .overlay.fail { box-shadow: inset 0 0 0 16px var(--bad); }
+  .result { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); font-size: 28px; font-weight: 800; padding: 4px 18px; border-radius: 12px; display: none; }
+  .result.pass { display: block; background: var(--good); color: #05221f; }
+  .result.fail { display: block; background: var(--bad); color: #fff; }
+  .bar { padding: 12px 16px; background: var(--bg-2); border-top: 1px solid var(--line); display: grid; gap: 8px; }
+  .start { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 16px; }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="/"><span class="logo">QC</span> กล้องสแกน</a>
+  <span class="spacer"></span>
+  <span class="small muted">ไลน์</span>
+  <input id="room" type="text" value="line-1" size="7">
+</header>
+<div class="cam">
+  <video id="video" autoplay playsinline muted></video>
+  <div class="overlay" id="overlay"></div>
+  <div class="result" id="result"></div>
+  <div class="start" id="startBox">
+    <div>
+      <p>ติดตั้งมือถือไว้เหนือสายพาน ให้กล้องมองลงตั้งฉากกับชิ้นงาน<br><span class="small muted">มือถือจะส่งภาพแบบ Real-time (WebRTC) ไปยังสถานีตรวจ</span></p>
+      <button class="primary" id="startBtn" style="font-size:18px;padding:12px 24px">เริ่มส่งภาพ</button>
+    </div>
+  </div>
+</div>
+<div class="bar">
+  <div class="row small"><span class="dot" id="dot"></span><span id="status">ยังไม่เริ่ม</span></div>
+  <div class="row">
+    <button id="flipBtn" class="small">สลับกล้อง</button>
+    <button id="torchBtn" class="small">ไฟแฟลช (Lighting)</button>
+    <select id="resSel" class="small"><option value="1280x720">720p</option><option value="1920x1080">1080p</option><option value="640x480">480p</option></select>
+    <label class="row small"><input type="checkbox" id="wake" checked> กันจอดับ</label>
+  </div>
+</div>
+<script type="module" src="/js/camera.js"></script>
+</body>
+</html>

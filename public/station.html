@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QC Station — Smart QC Scanner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/app.css">
+<style>
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 14px; align-items: start; }
+  @media (max-width: 1100px) { .layout { grid-template-columns: 1fr; } }
+  .stage { position: relative; background: #000; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--line); }
+  #view { display: block; width: 100%; height: auto; cursor: crosshair; touch-action: none; }
+  .stage .empty { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; color: var(--ink-3); padding: 20px; }
+  .flash { position: absolute; inset: 0; pointer-events: none; border: 0 solid transparent; transition: border-width .15s; border-radius: var(--radius); }
+  .flash.fail { border: 10px solid var(--bad); }
+  .flash.pass { border: 6px solid var(--good); }
+  .verdict { font-size: 44px; font-weight: 800; letter-spacing: .04em; line-height: 1; }
+  .verdict.pass { color: var(--good); } .verdict.fail { color: var(--bad); } .verdict.idle { color: var(--ink-3); font-size: 28px; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .pair figure { margin: 0; background: var(--bg-2); border-radius: 10px; padding: 6px; text-align: center; }
+  .pair img, .pair canvas { max-width: 100%; max-height: 140px; display: block; margin: 0 auto; border-radius: 6px; }
+  .pair figcaption { font-size: 12px; color: var(--ink-3); margin-top: 4px; }
+  .meter { display: grid; grid-template-columns: 92px 1fr 46px; gap: 8px; align-items: center; font-size: 13px; margin: 4px 0; }
+  .meter .bar { height: 8px; background: var(--bg-2); border-radius: 4px; position: relative; overflow: hidden; }
+  .meter .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--cyan); border-radius: 4px; }
+  .meter .bar i.over { background: var(--bad); }
+  .meter .bar::after { content: ''; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 2px; background: var(--ink-3); }
+  .goldens { display: flex; gap: 6px; flex-wrap: wrap; min-height: 54px; }
+  .goldens img { height: 54px; border-radius: 6px; border: 2px solid var(--mint); }
+  .recent { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+  .recent figure { margin: 0; flex: 0 0 auto; position: relative; }
+  .recent img { height: 64px; border-radius: 6px; display: block; border: 2px solid var(--good); }
+  .recent figure.fail img { border-color: var(--bad); }
+  .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+  @media (max-width: 700px) { .steps { grid-template-columns: 1fr 1fr; } }
+  .step { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; font-size: 13px; color: var(--ink-2); }
+  .step b { display: block; color: var(--ink); font-size: 14px; }
+  .step.done { border-color: var(--mint); }
+  .step.done b::before { content: '✓ '; color: var(--mint); }
+  .stats4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; text-align: center; }
+  .stats4 div { background: var(--bg-2); border-radius: 8px; padding: 6px 2px; }
+  .stats4 b { display: block; font-size: 20px; font-variant-numeric: tabular-nums; }
+  .stats4 span { font-size: 12px; color: var(--ink-3); }
+  details summary { cursor: pointer; color: var(--ink-2); font-weight: 600; }
+  .controls-grid { display: grid; gap: 10px; margin-top: 10px; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="/"><span class="logo">QC</span> Smart QC Scanner</a>
+  <nav class="nav">
+    <a href="/station.html" class="active">สถานีตรวจ</a>
+    <a href="/camera.html">กล้องมือถือ</a>
+    <a href="/dashboard.html" target="_blank">Dashboard ↗</a>
+  </nav>
+  <span class="spacer"></span>
+  <span class="small muted">ไลน์</span>
+  <input id="line" type="text" value="line-1" size="8">
+  <button id="demoBtn" class="primary">▶ เดโมด่วน (Simulator)</button>
+</header>
+
+<main class="wrap">
+  <div class="steps">
+    <div class="step" id="st1"><b>1. เลือกแหล่งภาพ</b>Simulator / Webcam / มือถือ (WebRTC)</div>
+    <div class="step" id="st2"><b>2. คาลิเบรตพื้นหลัง</b>ให้สายพานว่างแล้วกดคาลิเบรต</div>
+    <div class="step" id="st3"><b>3. สอนชิ้นงานต้นแบบ</b>ชิ้นงานดี 1–5 ชิ้น (Golden sample)</div>
+    <div class="step" id="st4"><b>4. ตรวจอัตโนมัติ</b>ระบบตรวจทุกชิ้นที่ผ่านกรอบ</div>
+  </div>
+
+  <div class="layout">
+    <section>
+      <div class="stage">
+        <canvas id="view" width="960" height="540"></canvas>
+        <div class="empty" id="empty">ยังไม่มีภาพ — เลือกแหล่งภาพด้านล่าง หรือกด “เดโมด่วน”</div>
+        <div class="flash" id="flash"></div>
+      </div>
+      <div class="panel" style="margin-top:12px">
+        <div class="row">
+          <span class="seg" id="srcSeg">
+            <button data-src="sim">Simulator</button>
+            <button data-src="webcam">Webcam เครื่องนี้</button>
+            <button data-src="rtc">มือถือ (WebRTC)</button>
+          </span>
+          <select id="camSelect" class="hidden"></select>
+          <span class="spacer"></span>
+          <button id="calibBtn">⟲ คาลิเบรตพื้นหลัง</button>
+          <button id="pauseBtn">⏸ หยุดตรวจ</button>
+        </div>
+        <div class="row small muted" style="margin-top:8px">
+          <span class="dot" id="srcDot"></span><span id="srcStatus">ยังไม่เชื่อมต่อ</span>
+          <span class="spacer"></span>
+          <span id="detStatus" class="mono"></span>
+        </div>
+        <p class="small muted" style="margin:8px 0 0">ลากบนภาพเพื่อกำหนด <b style="color:var(--mint)">กรอบตรวจ (Trigger zone)</b> · ชิ้นงานจะถูกตรวจ 1 ครั้งเมื่อเข้ามาอยู่ในกรอบครบทั้งชิ้น · ใช้พื้น/สายพานสีเรียบ ตัดกับสีชิ้นงาน และแสงคงที่</p>
+      </div>
+
+      <div class="panel" id="simPanel">
+        <div class="panel-head"><h2>Simulator สายพาน</h2><button id="simPause" class="small">⏸ หยุดสายพาน</button></div>
+        <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
+          <label class="field">ความเร็วสายพาน <span class="val" id="vSpeed"></span><input type="range" id="simSpeed" min="40" max="420" value="160"></label>
+          <label class="field">อัตราของเสีย <span class="val" id="vRate"></span><input type="range" id="simRate" min="0" max="100" value="25"></label>
+          <label class="field">ระยะห่างชิ้นงาน <span class="val" id="vGap"></span><input type="range" id="simGap" min="240" max="600" value="330"></label>
+        </div>
+        <p class="small muted" style="margin:8px 0 0">ชิ้นงานใน Simulator มีเฉลยว่าดี/เสีย ระบบจึงวัด <b>ความแม่นยำ</b> ได้จริง · ของเสียที่สุ่ม: รอยขีดข่วน, คราบ, มุมบิ่น, สีเพี้ยน, ขนาดเล็ก, ไม่มีลายพิมพ์ · ชิ้นงานกลับหัว 180° แบบสุ่ม</p>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h2>ประวัติล่าสุด</h2><span class="small muted">กดรูปเพื่อดูรายละเอียด</span></div>
+        <div class="recent" id="recent"></div>
+      </div>
+    </section>
+
+    <aside>
+      <div class="panel">
+        <div class="panel-head"><h2>ผลตรวจล่าสุด</h2><span class="small muted mono" id="lastTime"></span></div>
+        <div class="row" style="justify-content:space-between">
+          <div class="verdict idle" id="verdict">รอชิ้นงาน</div>
+          <div style="text-align:right"><div class="small muted">Quality score</div><div style="font-size:26px;font-weight:700" id="score">–</div></div>
+        </div>
+        <div id="defectList" class="row" style="margin:8px 0; min-height:26px"></div>
+        <div class="pair">
+          <figure><div id="heatBox"></div><figcaption>ชิ้นงาน + จุดผิดปกติ</figcaption></figure>
+          <figure><div id="goldBox"></div><figcaption>ต้นแบบที่ใกล้ที่สุด</figcaption></figure>
+        </div>
+        <div id="meters" style="margin-top:10px"></div>
+        <div class="small muted" id="aiLine"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h2>สถิติรอบนี้</h2><button id="resetSession" class="small">ล้าง</button></div>
+        <div class="stats4">
+          <div><b id="sTotal">0</b><span>ตรวจแล้ว</span></div>
+          <div><b id="sPass" style="color:var(--good)">0</b><span>ผ่าน</span></div>
+          <div><b id="sFail" style="color:var(--bad)">0</b><span>ไม่ผ่าน</span></div>
+          <div><b id="sYield">–</b><span>Yield</span></div>
+        </div>
+        <div class="small muted" style="margin-top:6px" id="accLine"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h2>ชิ้นงานต้นแบบ (Golden)</h2><button id="clearGold" class="small danger">ล้าง</button></div>
+        <div class="goldens" id="goldens"><span class="small muted">ยังไม่มี — วางชิ้นงานดีในกรอบ แล้วกดปุ่มด้านล่าง</span></div>
+        <div class="row" style="margin-top:8px">
+          <button id="teachLast">＋ ใช้ชิ้นล่าสุดเป็นต้นแบบ</button>
+          <button id="teachNext">＋ สอนชิ้นถัดไป</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <details open>
+          <summary>การตั้งค่าการตรวจ</summary>
+          <div class="controls-grid">
+            <div>
+              <div class="small muted">วิธีตัดสิน</div>
+              <span class="seg" id="modeSeg">
+                <button data-mode="rule">Golden sample</button>
+                <button data-mode="ai">AI (สอนเอง)</button>
+                <button data-mode="hybrid">Hybrid</button>
+              </span>
+            </div>
+            <label class="field">ความไว (Sensitivity) <span class="val" id="vSens"></span><input type="range" id="sens" min="50" max="200" value="100"></label>
+            <label class="field">เกณฑ์แยกชิ้นงานจากพื้น <span class="val" id="vDiff"></span><input type="range" id="diff" min="15" max="120" value="45"></label>
+            <label class="row small"><input type="checkbox" id="sound" checked> เสียงแจ้งเตือนเมื่อพบของเสีย</label>
+            <label class="row small"><input type="checkbox" id="showMask"> แสดง mask การตรวจจับ (debug)</label>
+          </div>
+        </details>
+      </div>
+
+      <div class="panel">
+        <details id="aiDetails">
+          <summary>AI แบบสอนเอง (MobileNet + KNN)</summary>
+          <p class="small muted">โหลดโมเดลจากอินเทอร์เน็ตครั้งแรก จากนั้นสอนด้วยภาพชิ้นงานจริง: กด “ดี/เสีย” หลังชิ้นงานถูกตรวจ หรือเปิดสอนอัตโนมัติจากเฉลยของ Simulator</p>
+          <div class="row">
+            <button id="aiLoad">โหลดโมเดล AI</button>
+            <span class="small" id="aiStatus">ยังไม่โหลด</span>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <button id="aiGood" disabled>＋ ชิ้นล่าสุด = ดี</button>
+            <button id="aiBad" disabled>＋ ชิ้นล่าสุด = เสีย</button>
+            <button id="aiClear" class="small danger" disabled>ล้าง</button>
+          </div>
+          <label class="row small" style="margin-top:8px"><input type="checkbox" id="aiAuto"> สอนอัตโนมัติจากเฉลย Simulator</label>
+        </details>
+      </div>
+    </aside>
+  </div>
+</main>
+<div class="toast" id="toast"></div>
+<script type="module" src="/js/station.js"></script>
+</body>
+</html>

@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smart QC Scanner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/app.css">
+<style>
+  .hero { padding: 36px 0 20px; }
+  .hero .bar { width: 64px; height: 4px; background: var(--mint); border-radius: 2px; margin-bottom: 18px; }
+  .hero h1 { font-size: clamp(36px, 7vw, 72px); font-weight: 800; font-style: italic; letter-spacing: -.01em; }
+  .hero p { color: var(--ink-2); max-width: 720px; font-size: 17px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-top: 20px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 10px; }
+  .card h3 { font-size: 20px; }
+  .card p { margin: 0; color: var(--ink-2); flex: 1; }
+  .flow { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin-top: 10px; }
+  .flow div { background: var(--bg-2); border-radius: 12px; padding: 12px; border-left: 3px solid var(--mint); }
+  .flow b { display: block; }
+  .flow span { color: var(--ink-3); font-size: 13px; }
+  #qr { background: #fff; padding: 8px; border-radius: 10px; width: max-content; }
+  #qr img, #qr canvas { display: block; }
+  ol { color: var(--ink-2); padding-left: 20px; } ol li { margin: 4px 0; }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="/"><span class="logo">QC</span> Smart QC Scanner</a>
+  <nav class="nav">
+    <a href="/station.html">สถานีตรวจ</a>
+    <a href="/camera.html">กล้องมือถือ</a>
+    <a href="/dashboard.html">Dashboard</a>
+  </nav>
+</header>
+<main class="wrap">
+  <section class="hero">
+    <div class="bar"></div>
+    <h1>SMART QC SCANNER</h1>
+    <p>ระบบตรวจสอบชิ้นงานด้วยกล้อง WebRTC บนสายพานการผลิต — กล้องจับภาพชิ้นงานแบบ Real-time, วิเคราะห์และจำแนกตำหนิอัตโนมัติ, แจ้งเตือน/สั่งคัดออก และบันทึกผลขึ้น Dashboard ทันที</p>
+    <div class="flow">
+      <div><b>① WebRTC Camera</b><span>มือถือ/เว็บแคมส่งภาพสด</span></div>
+      <div><b>② Trigger</b><span>จับชิ้นงานเมื่อเข้ากรอบตรวจ</span></div>
+      <div><b>③ Defect Detection</b><span>ขนาด · รูปร่าง · ผิว · สี · AI</span></div>
+      <div><b>④ Alert / Reject</b><span>เสียง + ไฟแดง + Webhook</span></div>
+      <div><b>⑤ Dashboard</b><span>Yield · Throughput · ตำหนิ</span></div>
+    </div>
+  </section>
+
+  <div class="cards">
+    <div class="card">
+      <h3>🖥 สถานีตรวจ (QC Station)</h3>
+      <p>หน้าหลักสำหรับคอมพิวเตอร์หน้าสายพาน: รับภาพ, ตรวจจับชิ้นงาน, ตัดสิน PASS/FAIL, แจ้งเตือน ลองได้ทันทีด้วย Simulator สายพาน</p>
+      <div class="row"><a class="btn primary" href="/station.html?demo=1">▶ เดโมด่วน</a><a class="btn" href="/station.html">เปิดสถานีตรวจ</a></div>
+    </div>
+    <div class="card">
+      <h3>📱 กล้องมือถือ (WebRTC)</h3>
+      <p>ใช้มือถือเป็นกล้องสแกนเหนือสายพาน สแกน QR ด้วยมือถือที่อยู่ Wi-Fi เดียวกัน (ต้องเป็น https — กดยอมรับคำเตือนใบรับรองครั้งแรก)</p>
+      <div class="row" style="align-items:flex-start">
+        <div id="qr"></div>
+        <div class="small mono" id="camUrl" style="word-break:break-all">กำลังหา IP…</div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>📊 Dashboard</h3>
+      <p>สำหรับหัวหน้างาน/ผู้บริหาร: สถิติแบบ Real-time, Yield, ของเสียตามประเภท, รูปจุดตำหนิ และ Export CSV เปิดจากอุปกรณ์ใดก็ได้ในเครือข่าย</p>
+      <div class="row"><a class="btn" href="/dashboard.html">เปิด Dashboard</a></div>
+      <div class="small muted" id="dashUrl"></div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:20px">
+    <h2 style="margin-bottom:6px">วิธีทดลองกับชิ้นงานจริง</h2>
+    <ol>
+      <li>ตั้งกล้อง (เว็บแคม หรือมือถือ) มองลงตั้งฉากกับพื้นสีเรียบที่ตัดกับสีชิ้นงาน แสงคงที่ (เปิดไฟแฟลชมือถือช่วยได้)</li>
+      <li>สถานีตรวจ → เลือกแหล่งภาพ → ให้กรอบว่างไว้ ระบบคาลิเบรตพื้นหลังอัตโนมัติ (กดซ้ำได้)</li>
+      <li>วางชิ้นงานดีในกรอบ → กด “ใช้ชิ้นล่าสุดเป็นต้นแบบ” (สอน 2–5 ชิ้นเพื่อให้ระบบเรียนรู้ความแปรปรวนปกติ)</li>
+      <li>นำชิ้นงานออก แล้ววาง/เลื่อนชิ้นงานถัดไปผ่านกรอบ ระบบตรวจชิ้นละ 1 ครั้งอัตโนมัติ</li>
+      <li>ปรับ “ความไว” ถ้าตัดของดีทิ้งมากไป (ลด) หรือปล่อยของเสียหลุด (เพิ่ม) หรือใช้โหมด AI/Hybrid สำหรับตำหนิที่ซับซ้อน</li>
+    </ol>
+  </div>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+  fetch('/api/info').then(r => r.json()).then(info => {
+    const ip = info.ips[0];
+    const base = info.httpsPort && ip ? `https://${ip}:${info.httpsPort}` : (ip ? `http://${ip}:${info.httpPort}` : location.origin);
+    const cam = `${base}/camera.html?room=line-1`;
+    document.getElementById('camUrl').innerHTML = `<a href="${cam}">${cam}</a>` + (info.httpsPort ? '' : '<br><span style="color:var(--warn)">HTTPS ไม่พร้อม — กล้องมือถือผ่าน LAN จะใช้ไม่ได้</span>') +
+      (info.ips.length > 1 ? `<br><span class="muted">IP อื่น: ${info.ips.slice(1).join(', ')}</span>` : '');
+    document.getElementById('dashUrl').textContent = `จากเครื่องอื่น: ${base}/dashboard.html`;
+    if (window.QRCode) new QRCode(document.getElementById('qr'), { text: cam, width: 128, height: 128 });
+    else document.getElementById('qr').style.display = 'none';
+  });
+</script>
+</body>
+</html>
