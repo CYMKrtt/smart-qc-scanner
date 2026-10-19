@@ -56,18 +56,24 @@ MobileNet + KNN (TensorFlow.js โหลดจาก CDN ครั้งแร�
 
 > ต้องตั้งรหัสผ่านก่อนเสมอ ไม่งั้นใครได้ลิงก์ก็กด "ล้างข้อมูล" ได้
 
-1. ติดตั้ง Cloudflare Tunnel (ครั้งเดียว): `winget install Cloudflare.cloudflared`
+ใช้ **ngrok** (ฟรี) — ห้ามใช้ Cloudflare Quick Tunnel (`trycloudflare.com`) เพราะไม่รองรับ SSE ทำให้ Dashboard ไม่อัปเดตและกล้องมือถือเชื่อมต่อไม่ได้
+
+1. ติดตั้งและตั้งค่า (ครั้งเดียว)
+   - `winget install Ngrok.Ngrok` แล้ว `ngrok update`
+   - สมัครฟรีที่ https://dashboard.ngrok.com/signup แล้วคัดลอก authtoken
+   - `ngrok config add-authtoken <TOKEN>`
 2. รันเซิร์ฟเวอร์พร้อมรหัสผ่าน
    ```bash
    set ACCESS_PASSWORD=รหัสของคุณ && node server.js
    ```
 3. เปิดอีกหน้าต่างแล้วรัน
    ```bash
-   cloudflared tunnel --url http://localhost:8080
+   ngrok http 8080
    ```
-   จะได้ลิงก์ `https://xxxx.trycloudflare.com` ส่งลิงก์ + รหัสผ่านให้เพื่อน (ช่องชื่อผู้ใช้กรอกอะไรก็ได้)
+   จะได้ลิงก์ `https://xxxx.ngrok-free.app` ส่งลิงก์ + รหัสผ่านให้เพื่อน (ช่องชื่อผู้ใช้กรอกอะไรก็ได้)
 
-- ลิงก์เปลี่ยนทุกครั้งที่รัน cloudflared ใหม่ และใช้ได้เฉพาะตอนที่เครื่องนี้เปิดอยู่
+- ครั้งแรกเพื่อนจะเจอหน้าเตือนของ ngrok ให้กด "Visit Site"
+- ใช้ได้เฉพาะตอนที่เครื่องนี้เปิดและรันทั้ง 2 คำสั่งอยู่
 - ลิงก์เป็น https จริง มือถือเปิดกล้องได้เลยโดยไม่มีคำเตือน
 - ส่งภาพกล้องข้ามเครือข่ายคนละที่ (WebRTC) อาจต่อไม่ติดในบางเครือข่าย เพราะใช้แค่ STUN ไม่มี TURN server
 
